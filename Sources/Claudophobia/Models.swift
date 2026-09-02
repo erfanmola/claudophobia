@@ -37,19 +37,20 @@ struct UsageLimit: Codable, Equatable, Sendable {
       if remaining < minute {
          return "resets in <1 min"
       }
+      let totalMinutes = Int(remaining.rounded(.toNearestOrAwayFromZero) / minute)
       if remaining < hour {
-         let minutes = max(1, Int(remaining / minute))
-         return "resets in \(minutes) min"
+         return "resets in \(max(1, totalMinutes)) min"
       }
       if remaining < day {
-         let hours = Int(remaining / hour)
-         let minutes = Int((remaining - Double(hours) * hour) / minute)
+         let hours = totalMinutes / 60
+         let minutes = totalMinutes % 60
          return minutes == 0
             ? "resets in \(hours) hr"
             : "resets in \(hours) hr \(minutes) min"
       }
-      let days = Int(remaining / day)
-      let hours = Int((remaining - Double(days) * day) / hour)
+      let totalHours = totalMinutes / 60
+      let days = totalHours / 24
+      let hours = totalHours % 24
       return hours == 0
          ? "resets in \(days) day\(days == 1 ? "" : "s")"
          : "resets in \(days) day\(days == 1 ? "" : "s") \(hours) hr"
