@@ -23,7 +23,8 @@ struct UsageLimit: Codable, Equatable, Sendable {
       }
    }
 
-   /// Short human-readable reset countdown, e.g. "resets in 3h 20m".
+   /// Short human-readable reset countdown, matching claude.ai's own usage page
+   /// formatting, e.g. "resets in 4 hr 3 min".
    var resetDescription: String {
       guard let resetAt else { return "—" }
       let remaining = resetAt.timeIntervalSinceNow
@@ -33,16 +34,25 @@ struct UsageLimit: Codable, Equatable, Sendable {
       let hour: TimeInterval = 3600
       let day: TimeInterval = 86400
 
+      if remaining < minute {
+         return "resets in <1 min"
+      }
       if remaining < hour {
-         return "resets in \(max(1, Int(ceil(remaining / minute))))m"
+         let minutes = max(1, Int(remaining / minute))
+         return "resets in \(minutes) min"
       }
       if remaining < day {
-         return "resets in \(Int(ceil(remaining / hour)))h"
+         let hours = Int(remaining / hour)
+         let minutes = Int((remaining - Double(hours) * hour) / minute)
+         return minutes == 0
+            ? "resets in \(hours) hr"
+            : "resets in \(hours) hr \(minutes) min"
       }
-      let hours = Int(ceil(remaining / hour))
-      let days = hours / 24
-      let remHours = hours % 24
-      return remHours == 0 ? "resets in \(days)d" : "resets in \(days)d \(remHours)h"
+      let days = Int(remaining / day)
+      let hours = Int((remaining - Double(days) * day) / hour)
+      return hours == 0
+         ? "resets in \(days) day\(days == 1 ? "" : "s")"
+         : "resets in \(days) day\(days == 1 ? "" : "s") \(hours) hr"
    }
 }
 

@@ -23,15 +23,15 @@ final class UsageLimitTests: XCTestCase {
       let now = Date()
       let inMinutes = UsageLimit(utilization: 10, resetAt: now.addingTimeInterval(90))
          .resetDescription
-      XCTAssertTrue(inMinutes.contains("2m"), inMinutes)
+      XCTAssertTrue(inMinutes.contains("1 min"), inMinutes)
 
-      let inHours = UsageLimit(utilization: 10, resetAt: now.addingTimeInterval(3.5 * 3600))
+      let inHours = UsageLimit(utilization: 10, resetAt: now.addingTimeInterval(4 * 3600 + 3 * 60))
          .resetDescription
-      XCTAssertTrue(inHours.contains("4h"), inHours)
+      XCTAssertEqual(inHours, "resets in 4 hr 3 min")
 
       let inDays = UsageLimit(utilization: 10, resetAt: now.addingTimeInterval(50 * 3600))
          .resetDescription
-      XCTAssertTrue(inDays.contains("2d"), inDays)
+      XCTAssertTrue(inDays.contains("2 day"), inDays)
 
       let passed = UsageLimit(utilization: 10, resetAt: now.addingTimeInterval(-10))
          .resetDescription
