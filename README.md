@@ -17,7 +17,7 @@
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT" />
 </p>
 
-A native macOS menu bar app that keeps an eye on your **Claude.ai usage quota** — the
+A native macOS menu bar app that keeps an eye on your **Claude.ai and OpenAI Codex usage quotas** — the
 5-hour **session** window and the 7-day **weekly** window — and sings a little ding
 before you hit the wall.
 
@@ -35,6 +35,7 @@ away and it tucks itself back in.
 | 🍜 **Notch app**               | Pill inside the camera housing; hover or click to expand into a live card with gauges, a usage trend sparkline and an account switcher. **Auto-collapses when your cursor leaves**     |
 | 👥 **Multi-account**           | Track any number of Claude accounts independently; switch the active one from the popover or the notch card                                                                            |
 | 🔐 **In-app login**            | “Sign in with Claude” opens an embedded browser — your `sessionKey` is captured automatically and stored in the **Keychain**, never in a config file                                   |
+| 🤖 **OpenAI Codex**            | Automatically detects a local Codex login and tracks its 5-hour and weekly quota windows                                               |
 | ⚠️ **Threshold alerts**        | Warns at **80%** by default (session & weekly, both configurable). One banner per crossing; re-arms automatically after usage drops                                                    |
 | 🔔 **The ding**                | A synthesized chime (no audio assets) on warnings, and a happy two-note “all clear” when a quota refreshes. Mutable, previewable                                                       |
 | 🎛️ **Configurable everything** | Update interval, notifications on/off, sound on/off, notify-on-reset, notch width & hover behavior, **open at startup (on by default)**, per-account rename / remove / re-authenticate |
@@ -82,6 +83,10 @@ GET https://claude.ai/api/organizations/{org}/usage    → {
     "seven_day_sonnet": { … } | null
   }
 ```
+
+When Codex is installed and signed in, Claudophobia reads `~/.codex/auth.json` and
+queries `https://chatgpt.com/backend-api/codex/usage` using the local OAuth token.
+This is a private Codex endpoint and may change without notice.
 
 Auth is the `sessionKey` cookie from claude.ai, sent as a `Cookie` header. It's
 captured from the embedded login window, or you can paste one manually:

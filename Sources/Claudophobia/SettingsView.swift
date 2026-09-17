@@ -75,7 +75,7 @@ struct SettingsView: View {
                   .foregroundStyle(Assets.accent)
                Text("No accounts yet")
                   .font(.headline)
-               Text("Sign in with Claude, or paste a session key from your browser.")
+               Text("Sign in with Claude, or use Codex if the Codex app/CLI is already signed in.")
                   .font(.caption)
                   .foregroundStyle(.secondary)
             }
@@ -93,6 +93,11 @@ struct SettingsView: View {
                model.startLogin()
             } label: {
                Label("Sign in with Claude", systemImage: "person.crop.circle.badge.plus")
+            }
+            Button {
+               Task { await model.refreshAll() }
+            } label: {
+               Label("Add Codex account", systemImage: "terminal")
             }
             Spacer()
             Button("Paste session key…") {
@@ -143,10 +148,12 @@ struct SettingsView: View {
 
          Spacer()
 
-         Button("Sign in again") {
-            model.reauthenticate(accountID: account.id)
+         if account.provider == .claude {
+            Button("Sign in again") {
+               model.reauthenticate(accountID: account.id)
+            }
+            .controlSize(.small)
          }
-         .controlSize(.small)
 
          Button(role: .destructive) {
             model.removeAccount(id: account.id)

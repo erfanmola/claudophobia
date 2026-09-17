@@ -5,7 +5,7 @@ cd "$(dirname "$0")/.."
 
 APP_NAME="Claudophobia"
 BUNDLE_ID="com.claudophobia.app"
-VERSION="0.1.0"
+VERSION="0.2.0"
 
 echo "▸ swift build (release)"
 swift build -c release

@@ -16,6 +16,7 @@ final class AppModel: ObservableObject {
    @Published var loginError: String?
 
    private let api = ClaudeAPI()
+   private let codexAPI = CodexAPI()
    private let configStore = ConfigStore.shared
    private let notificationManager = NotificationManager.shared
    private var pollTask: Task<Void, Never>?
@@ -87,6 +88,7 @@ final class AppModel: ObservableObject {
    }
 
    func refreshAll() async {
+      discoverCodexAccount()
       guard !accounts.isEmpty else { return }
       isRefreshing = true
       defer {
@@ -102,6 +104,11 @@ final class AppModel: ObservableObject {
 
    private func refresh(account: ClaudeAccount) async {
       do {
+         if account.provider == .codex {
+            let snapshot = try await codexAPI.usage().snapshot(accountName: account.name)
+            update(account: account, snapshot: snapshot)
+            return
+         }
          let key = try KeychainStore.load(account: account.id)
          let sessionKey = try SessionKey(key)
 
@@ -117,6 +124,17 @@ final class AppModel: ObservableObject {
          let usage = try await api.usage(orgID: orgID, sessionKey: sessionKey.value)
          let snapshot = usage.snapshot(orgName: account.orgName)
 
+         update(account: account, snapshot: snapshot)
+      } catch ClaudeAPIError.invalidSession {
+         accountErrors[account.id] = "Session expired — sign in again."
+      } catch ClaudeAPIError.rateLimited {
+         accountErrors[account.id] = "Rate limited by \(account.provider.displayName) — will retry."
+      } catch {
+         accountErrors[account.id] = error.localizedDescription
+      }
+   }
+
+   private func update(account: ClaudeAccount, snapshot: UsageSnapshot) {
          let previous = previousSnapshots[account.id]
          previousSnapshots[account.id] = snapshot
          snapshots[account.id] = snapshot
@@ -139,13 +157,16 @@ final class AppModel: ObservableObject {
             config.armedThresholds = evaluation.armed
             persist()
          }
-      } catch ClaudeAPIError.invalidSession {
-         accountErrors[account.id] = "Session expired — sign in again."
-      } catch ClaudeAPIError.rateLimited {
-         accountErrors[account.id] = "Rate limited by Claude — will retry."
-      } catch {
-         accountErrors[account.id] = error.localizedDescription
-      }
+   }
+
+   private func discoverCodexAccount() {
+      guard let auth = try? CodexAuth.load() else { return }
+      guard !accounts.contains(where: { $0.provider == .codex && $0.orgID == auth.accountID }) else { return }
+      let account = ClaudeAccount(
+         name: "Codex", provider: .codex, orgID: auth.accountID, orgName: "OpenAI Codex")
+      config.accounts.append(account)
+      if config.activeAccountID == nil { config.activeAccountID = account.id }
+      persist()
    }
 
    private func appendHistory(accountID: String, snapshot: UsageSnapshot) {

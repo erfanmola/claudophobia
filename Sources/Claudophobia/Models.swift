@@ -90,23 +90,50 @@ struct UsageSample: Codable, Equatable, Sendable {
 
 // MARK: - Account
 
-/// A configured Claude account. The session key itself is stored in the Keychain
-/// keyed by `id` — never persisted in the config file.
+enum AccountProvider: String, Codable, Sendable {
+   case claude
+   case codex
+
+   var displayName: String { self == .claude ? "Claude" : "Codex" }
+}
+
+/// A configured provider account. Claude session keys are stored in the Keychain;
+/// Codex OAuth credentials are read from the local Codex CLI auth file.
 struct ClaudeAccount: Codable, Identifiable, Equatable, Sendable {
    var id: String
    var name: String
    var email: String?
+   var provider: AccountProvider
    var orgID: String?
    var orgName: String?
    var createdAt: Date
 
-   init(name: String, email: String? = nil, orgID: String?, orgName: String?) {
+   private enum CodingKeys: String, CodingKey {
+      case id, name, email, provider, orgID, orgName, createdAt
+   }
+
+   init(
+      name: String, email: String? = nil, provider: AccountProvider = .claude,
+      orgID: String?, orgName: String?
+   ) {
       self.id = UUID().uuidString
       self.name = name
       self.email = email
+      self.provider = provider
       self.orgID = orgID
       self.orgName = orgName
       self.createdAt = Date()
+   }
+
+   init(from decoder: Decoder) throws {
+      let c = try decoder.container(keyedBy: CodingKeys.self)
+      id = try c.decode(String.self, forKey: .id)
+      name = try c.decode(String.self, forKey: .name)
+      email = try c.decodeIfPresent(String.self, forKey: .email)
+      provider = try c.decodeIfPresent(AccountProvider.self, forKey: .provider) ?? .claude
+      orgID = try c.decodeIfPresent(String.self, forKey: .orgID)
+      orgName = try c.decodeIfPresent(String.self, forKey: .orgName)
+      createdAt = try c.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
    }
 }
 
