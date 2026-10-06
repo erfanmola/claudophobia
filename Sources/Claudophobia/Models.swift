@@ -93,8 +93,25 @@ struct UsageSample: Codable, Equatable, Sendable {
 enum AccountProvider: String, Codable, Sendable {
    case claude
    case codex
+   case opencode
 
-   var displayName: String { self == .claude ? "Claude" : "Codex" }
+   var displayName: String {
+      switch self {
+      case .claude: return "Claude"
+      case .codex: return "Codex"
+      case .opencode: return "OpenCode"
+      }
+   }
+
+   /// Usage page opened by the ↗ button. Provider-aware: a Codex account must
+   /// not land on claude.ai/usage.
+   var usageURL: URL {
+      switch self {
+      case .claude: return URL(string: "https://claude.ai/usage")!
+      case .codex: return URL(string: "https://chatgpt.com/codex")!
+      case .opencode: return URL(string: "https://opencode.ai/console")!
+      }
+   }
 }
 
 /// A configured provider account. Claude session keys are stored in the Keychain;

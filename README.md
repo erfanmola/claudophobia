@@ -36,6 +36,7 @@ away and it tucks itself back in.
 | 👥 **Multi-account**           | Track any number of Claude accounts independently; switch the active one from the popover or the notch card                                                                            |
 | 🔐 **In-app login**            | “Sign in with Claude” opens an embedded browser — your `sessionKey` is captured automatically and stored in the **Keychain**, never in a config file                                   |
 | 🤖 **OpenAI Codex**            | Automatically detects a local Codex login and tracks its 5-hour and weekly quota windows                                               |
+| ⚡️ **OpenCode Go**              | Detects a local OpenCode login (`opencode auth login`) and tracks its rolling 5-hour and weekly quota windows                         |
 | ⚠️ **Threshold alerts**        | Warns at **80%** by default (session & weekly, both configurable). One banner per crossing; re-arms automatically after usage drops                                                    |
 | 🔔 **The ding**                | A synthesized chime (no audio assets) on warnings, and a happy two-note “all clear” when a quota refreshes. Mutable, previewable                                                       |
 | 🎛️ **Configurable everything** | Update interval, notifications on/off, sound on/off, notify-on-reset, notch width & hover behavior, **open at startup (on by default)**, per-account rename / remove / re-authenticate |
@@ -88,6 +89,21 @@ When Codex is installed and signed in, Claudophobia reads `~/.codex/auth.json` a
 queries `https://chatgpt.com/backend-api/codex/usage` using the local OAuth token.
 This is a private Codex endpoint and may change without notice.
 
+When OpenCode is signed in (`opencode auth login`), Claudophobia reads the local
+credentials — the Console OAuth sign-in or `opencode-go` API key from
+`~/.local/share/opencode/opencode.db`, `OPENCODE_API_KEY`, or the global
+`opencode.json[c]` — and queries the Go quota endpoints:
+
+```
+GET https://opencode.ai/zen/go/v1/usage   (API key)
+GET https://opencode.ai/console/api/go/status   (Console sign-in)
+```
+
+Both report rolling 5-hour, weekly, and monthly windows; the 5-hour and weekly
+windows map onto the session/weekly gauges. A Console sign-in without a Go
+subscription shows a "not subscribed" note instead of quota. Zen-only credit
+balances are not tracked as quota.
+
 Auth is the `sessionKey` cookie from claude.ai, sent as a `Cookie` header. It's
 captured from the embedded login window, or you can paste one manually:
 **Settings → Accounts → Paste session key**.
@@ -103,6 +119,8 @@ Sources/Claudophobia/
   ClaudophobiaApp.swift     @main — MenuBarExtra + Settings scenes
   AppModel.swift            central state, polling loop, account lifecycle
   ClaudeAPI.swift           claude.ai REST client
+  CodexAPI.swift            Codex usage client (chatgpt.com backend API)
+  OpenCodeAPI.swift         OpenCode Go quota client (opencode.ai)
   KeychainStore.swift       Keychain storage + sessionKey parsing
   ConfigStore.swift         JSON config (~/Library/Application Support/Claudophobia)
   ThresholdEvaluator.swift  pure threshold / re-arm / reset logic

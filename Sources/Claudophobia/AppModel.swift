@@ -17,6 +17,7 @@ final class AppModel: ObservableObject {
 
    private let api = ClaudeAPI()
    private let codexAPI = CodexAPI()
+   private let opencodeAPI = OpenCodeAPI()
    private let configStore = ConfigStore.shared
    private let notificationManager = NotificationManager.shared
    private var pollTask: Task<Void, Never>?
@@ -89,6 +90,7 @@ final class AppModel: ObservableObject {
 
    func refreshAll() async {
       discoverCodexAccount()
+      discoverOpenCodeAccount()
       guard !accounts.isEmpty else { return }
       isRefreshing = true
       defer {
@@ -106,6 +108,11 @@ final class AppModel: ObservableObject {
       do {
          if account.provider == .codex {
             let snapshot = try await codexAPI.usage().snapshot(accountName: account.name)
+            update(account: account, snapshot: snapshot)
+            return
+         }
+         if account.provider == .opencode {
+            let snapshot = try await opencodeAPI.usage()
             update(account: account, snapshot: snapshot)
             return
          }
@@ -164,6 +171,17 @@ final class AppModel: ObservableObject {
       guard !accounts.contains(where: { $0.provider == .codex && $0.orgID == auth.accountID }) else { return }
       let account = ClaudeAccount(
          name: "Codex", provider: .codex, orgID: auth.accountID, orgName: "OpenAI Codex")
+      config.accounts.append(account)
+      if config.activeAccountID == nil { config.activeAccountID = account.id }
+      persist()
+   }
+
+   private func discoverOpenCodeAccount() {
+      guard let auth = try? OpenCodeAuth.load(), auth.hasAuth else { return }
+      let key = auth.accountKey
+      guard !accounts.contains(where: { $0.provider == .opencode && $0.orgID == key }) else { return }
+      let account = ClaudeAccount(
+         name: "OpenCode", provider: .opencode, orgID: key, orgName: "OpenCode")
       config.accounts.append(account)
       if config.activeAccountID == nil { config.activeAccountID = account.id }
       persist()

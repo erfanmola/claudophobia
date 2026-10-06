@@ -537,15 +537,14 @@ struct NotchContentView: View {
          }
          Button {
             NotchController.shared.collapse()
-            if let url = URL(string: "https://claude.ai/usage") {
-               NSWorkspace.shared.open(url)
-            }
+            NSWorkspace.shared.open(model.activeAccount?.provider.usageURL ?? AccountProvider.claude.usageURL)
          } label: {
             Image(systemName: "arrow.up.right.square")
                .font(.system(size: 11))
          }
          .buttonStyle(.plain)
          .foregroundStyle(.secondary)
+         .help("Open usage page")
       }
    }
 

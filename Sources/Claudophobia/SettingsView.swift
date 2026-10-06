@@ -75,7 +75,7 @@ struct SettingsView: View {
                   .foregroundStyle(Assets.accent)
                Text("No accounts yet")
                   .font(.headline)
-               Text("Sign in with Claude, or use Codex if the Codex app/CLI is already signed in.")
+               Text("Sign in with Claude, or use Codex / OpenCode if already signed in locally.")
                   .font(.caption)
                   .foregroundStyle(.secondary)
             }
@@ -97,8 +97,9 @@ struct SettingsView: View {
             Button {
                Task { await model.refreshAll() }
             } label: {
-               Label("Add Codex account", systemImage: "terminal")
+               Label("Detect local accounts", systemImage: "terminal")
             }
+            .help("Detect signed-in Codex / OpenCode CLIs")
             Spacer()
             Button("Paste session key…") {
                NSPasteboard.general.clearContents()
