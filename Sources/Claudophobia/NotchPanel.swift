@@ -232,7 +232,8 @@ final class NotchController {
 
       // Landscape card: wide and short, like real notch widgets.
       let expandedWidth: CGFloat = 600
-      let expandedHeight: CGFloat = 300
+      let visibleAccounts = min(AppModel.shared.accounts.count, 2)
+      let expandedHeight: CGFloat = max(190, 180 + CGFloat(visibleAccounts) * 112)
       expandedFrame = NSRect(
          x: screen.frame.midX - expandedWidth / 2,
          y: top - expandedHeight,
@@ -433,14 +434,14 @@ struct NotchContentView: View {
          } else {
             HStack(spacing: 8) {
                Text("All accounts")
-                  .font(.system(size: 11, weight: .semibold))
+                  .font(.system(size: 13, weight: .semibold))
                   .foregroundStyle(.secondary)
                Text("\(model.accounts.count)")
-                  .font(.system(size: 10, weight: .medium, design: .rounded))
+                  .font(.system(size: 11, weight: .medium, design: .rounded))
                   .foregroundStyle(.tertiary)
                Spacer()
-               Text("SESSION · WEEKLY")
-                  .font(.system(size: 9, weight: .semibold))
+               Text("SESSION · 5H                     WEEKLY · 7D")
+                  .font(.system(size: 10, weight: .semibold))
                   .foregroundStyle(.tertiary)
             }
             ScrollView {
@@ -450,6 +451,7 @@ struct NotchContentView: View {
                   }
                }
             }
+            .frame(maxHeight: CGFloat(min(model.accounts.count, 2)) * 138 + 7)
             .scrollIndicators(.hidden)
             footer
          }
@@ -481,30 +483,39 @@ struct NotchContentView: View {
                .foregroundStyle(model.accountErrors[account.id] == nil ? Color.secondary : Assets.statusCritical)
                .lineLimit(1)
          }
-         Spacer(minLength: 6)
+         .frame(width: 190, alignment: .leading)
+         Spacer(minLength: 12)
          accountLimit(title: "5h", limit: snapshot?.session, accent: Assets.sessionAccent)
          accountLimit(title: "7d", limit: snapshot?.weekly, accent: Assets.weeklyAccent)
       }
-      .padding(.horizontal, 11)
-      .padding(.vertical, 8)
+      .padding(.horizontal, 14)
+      .padding(.vertical, 12)
       .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.white.opacity(0.055)))
    }
 
    private func accountLimit(title: String, limit: UsageLimit?, accent: Color) -> some View {
       let color = limit?.statusLevel.color ?? accent
-      return VStack(spacing: 3) {
+      return HStack(spacing: 12) {
          ZStack {
-            GaugeRing(progress: limit?.fraction ?? 0, color: color, lineWidth: 3)
-            Text(limit.map { "\(Int($0.utilization.rounded()))" } ?? "—")
-               .font(.system(size: 9, weight: .bold, design: .rounded))
-               .foregroundStyle(limit?.statusLevel.color ?? .secondary)
+            GaugeRing(progress: limit?.fraction ?? 0, color: color, lineWidth: 7)
+               .frame(width: 58, height: 58)
+            Text(limit.map { "\(Int($0.utilization.rounded()))%" } ?? "—")
+               .font(.system(size: 12, weight: .bold, design: .rounded))
+               .foregroundStyle(.primary)
          }
-         .frame(width: 34, height: 34)
-         Text(title)
-            .font(.system(size: 8, weight: .semibold))
-            .foregroundStyle(.tertiary)
+         VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+               .font(.system(size: 12, weight: .semibold))
+               .foregroundStyle(.secondary)
+            Text("\(Int((limit?.utilization ?? 0).rounded()))% used")
+               .font(.system(size: 16, weight: .bold, design: .rounded))
+            Text(limit?.resetDescription ?? "Waiting for usage…")
+               .font(.system(size: 10))
+               .foregroundStyle(.tertiary)
+               .lineLimit(1)
+         }
       }
-      .frame(width: 42)
+      .frame(maxWidth: .infinity, alignment: .leading)
    }
 
    private var footer: some View {
@@ -546,7 +557,7 @@ struct NotchContentView: View {
    }
 }
 
-/// Compact usage row used inside the notch card.
+/// Large usage card used for each account inside the notch card.
 struct NotchUsageCard: View {
    let title: String
    let limit: UsageLimit?
@@ -555,7 +566,7 @@ struct NotchUsageCard: View {
    var body: some View {
       HStack(spacing: 12) {
          ZStack {
-            GaugeRing(progress: limit?.fraction ?? 0, color: accent, lineWidth: 7)
+         GaugeRing(progress: limit?.fraction ?? 0, color: limit?.statusLevel.color ?? accent, lineWidth: 9)
                .frame(width: 44, height: 44)
             Text("\(Int((limit?.utilization ?? 0).rounded()))%")
                .font(.system(size: 11, weight: .bold, design: .rounded))
