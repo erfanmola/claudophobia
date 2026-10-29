@@ -233,7 +233,7 @@ final class NotchController {
       // Landscape card: wide and short, like real notch widgets.
       let expandedWidth: CGFloat = 600
       let visibleAccounts = min(AppModel.shared.accounts.count, 2)
-      let expandedHeight: CGFloat = max(190, 180 + CGFloat(visibleAccounts) * 112)
+      let expandedHeight: CGFloat = max(190, 166 + CGFloat(visibleAccounts) * 90)
       expandedFrame = NSRect(
          x: screen.frame.midX - expandedWidth / 2,
          y: top - expandedHeight,
@@ -390,7 +390,7 @@ struct NotchContentView: View {
          .padding(.horizontal, 18)
          .padding(.top, topInset)
          .padding(.bottom, 16)
-         .frame(maxWidth: .infinity, maxHeight: .infinity)
+         .frame(maxWidth: .infinity, alignment: .top)
          .background(cardBackground)
          .shadow(color: .black.opacity(0.35), radius: 22, x: 0, y: 14)
          .contentShape(Rectangle())
@@ -451,7 +451,7 @@ struct NotchContentView: View {
                   }
                }
             }
-            .frame(maxHeight: CGFloat(min(model.accounts.count, 2)) * 138 + 7)
+            .frame(height: CGFloat(min(model.accounts.count, 2)) * 138 + 7)
             .scrollIndicators(.hidden)
             footer
          }
