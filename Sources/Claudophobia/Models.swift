@@ -258,6 +258,7 @@ struct AppSettings: Codable, Equatable, Sendable {
 struct AppConfig: Codable, Equatable {
    var accounts: [ClaudeAccount] = []
    var activeAccountID: String?
+   var disabledAutoDetectedAccountKeys: Set<String> = []
    var settings: AppSettings = AppSettings()
    /// "accountID.limitKind" -> has a threshold notification been fired for the current crossing.
    var armedThresholds: [String: Bool] = [:]
@@ -274,6 +275,7 @@ struct AppConfig: Codable, Equatable {
       let c = try decoder.container(keyedBy: CodingKeys.self)
       accounts = try c.decodeIfPresent([ClaudeAccount].self, forKey: .accounts) ?? []
       activeAccountID = try c.decodeIfPresent(String.self, forKey: .activeAccountID)
+      disabledAutoDetectedAccountKeys = try c.decodeIfPresent(Set<String>.self, forKey: .disabledAutoDetectedAccountKeys) ?? []
       settings = try c.decodeIfPresent(AppSettings.self, forKey: .settings) ?? AppSettings()
       armedThresholds = try c.decodeIfPresent([String: Bool].self, forKey: .armedThresholds) ?? [:]
       history = try c.decodeIfPresent([String: [UsageSample]].self, forKey: .history) ?? [:]

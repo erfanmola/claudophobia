@@ -179,6 +179,7 @@ final class AppModel: ObservableObject {
    private func discoverOpenCodeAccount() {
       guard let auth = try? OpenCodeAuth.load(), auth.hasAuth else { return }
       let key = auth.accountKey
+      guard !config.disabledAutoDetectedAccountKeys.contains("opencode:\(key)") else { return }
       guard !accounts.contains(where: { $0.provider == .opencode && $0.orgID == key }) else { return }
       let account = ClaudeAccount(
          name: "OpenCode", provider: .opencode, orgID: key, orgName: "OpenCode")
@@ -291,6 +292,10 @@ final class AppModel: ObservableObject {
    }
 
    func removeAccount(id: String) {
+      if let account = accounts.first(where: { $0.id == id }), account.provider == .opencode,
+         let key = account.orgID {
+         config.disabledAutoDetectedAccountKeys.insert("opencode:\(key)")
+      }
       config.accounts.removeAll { $0.id == id }
       KeychainStore.delete(account: id)
       snapshots.removeValue(forKey: id)

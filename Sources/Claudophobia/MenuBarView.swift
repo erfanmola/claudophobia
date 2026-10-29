@@ -27,23 +27,24 @@ struct MenuBarLabel: View {
    }
 
    private var renderedImage: NSImage {
-      let content = HStack(spacing: 2) {
-         if snapshots.isEmpty {
-            Image(systemName: "circle.grid.2x2.fill")
-               .font(.system(size: 15, weight: .medium))
-         } else {
-            ForEach(Array(snapshots.prefix(3).enumerated()), id: \.offset) { _, snap in
-               MiniGauge(progress: snap.session.fraction, level: snap.session.statusLevel, size: 11)
-            }
-            if snapshots.count > 3 {
-               Text("+\(snapshots.count - 3)").font(.system(size: 7, weight: .bold))
-            }
-         }
+      let average = snapshots.isEmpty ? 0 : snapshots.map(\.session.fraction).reduce(0, +) / Double(snapshots.count)
+      let level = snapshots.map(\.session).max(by: { $0.utilization < $1.utilization })?.statusLevel ?? .safe
+      let content = ZStack {
+         Circle().stroke(level.color.opacity(0.28), lineWidth: 2)
+         Circle()
+            .trim(from: 0, to: max(0.03, min(average, 1)))
+            .stroke(level.color, style: StrokeStyle(lineWidth: 2.4, lineCap: .round))
+            .rotationEffect(.degrees(-90))
+         Image(systemName: "person.2.fill")
+            .font(.system(size: 7, weight: .semibold))
+            .foregroundStyle(level.color)
       }
-      .frame(width: 22, height: 18)
+      .frame(width: 17, height: 17)
       let renderer = ImageRenderer(content: content)
       renderer.scale = NSScreen.main?.backingScaleFactor ?? 2
-      return renderer.nsImage ?? NSImage(size: .zero)
+      let image = renderer.nsImage ?? NSImage(size: .zero)
+      image.isTemplate = false
+      return image
    }
 }
 
@@ -51,6 +52,7 @@ struct MenuBarLabel: View {
 
 struct MenuBarView: View {
    @EnvironmentObject var model: AppModel
+   @Environment(\.openSettings) private var openSettings
    @State private var showPasteField = false
    @State private var pastedKey = ""
 
@@ -250,7 +252,10 @@ struct MenuBarView: View {
 
    private var footer: some View {
       HStack {
-         SettingsLink {
+         Button {
+            NSApp.activate(ignoringOtherApps: true)
+            openSettings()
+         } label: {
             Label("Settings", systemImage: "gearshape")
                .font(.system(size: 12))
          }

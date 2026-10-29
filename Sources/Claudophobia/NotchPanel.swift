@@ -431,12 +431,26 @@ struct NotchContentView: View {
             }
             Spacer()
          } else {
-            // Landscape: both gauges side by side, trend below.
-            HStack(spacing: 12) {
-               sessionCard
-               weeklyCard
+            HStack(spacing: 8) {
+               Text("All accounts")
+                  .font(.system(size: 11, weight: .semibold))
+                  .foregroundStyle(.secondary)
+               Text("\(model.accounts.count)")
+                  .font(.system(size: 10, weight: .medium, design: .rounded))
+                  .foregroundStyle(.tertiary)
+               Spacer()
+               Text("SESSION · WEEKLY")
+                  .font(.system(size: 9, weight: .semibold))
+                  .foregroundStyle(.tertiary)
             }
-            historyChart
+            ScrollView {
+               VStack(spacing: 7) {
+                  ForEach(model.accounts) { account in
+                     accountUsageRow(account)
+                  }
+               }
+            }
+            .scrollIndicators(.hidden)
             footer
          }
       }
@@ -451,67 +465,46 @@ struct NotchContentView: View {
             .font(.system(size: 13, weight: .bold))
             .lineLimit(1)
          Spacer(minLength: 8)
-         accountMenu
+         Spacer()
       }
    }
 
-   private var accountMenu: some View {
-      Menu {
-         ForEach(model.accounts) { account in
-            Button {
-               model.setActive(id: account.id)
-            } label: {
-               if model.activeAccount?.id == account.id {
-                  Label(account.name, systemImage: "checkmark")
-               } else {
-                  Text(account.name)
-               }
-            }
+   private func accountUsageRow(_ account: ClaudeAccount) -> some View {
+      let snapshot = model.snapshots[account.id]
+      return HStack(spacing: 10) {
+         VStack(alignment: .leading, spacing: 3) {
+            Text(account.name)
+               .font(.system(size: 12, weight: .semibold))
+               .lineLimit(1)
+            Text(model.accountErrors[account.id] ?? (snapshot == nil ? "Waiting for usage…" : account.provider.displayName))
+               .font(.system(size: 9))
+               .foregroundStyle(model.accountErrors[account.id] == nil ? Color.secondary : Assets.statusCritical)
+               .lineLimit(1)
          }
-      } label: {
-         Text(model.activeAccount?.name ?? "Account")
-            .font(.system(size: 11, weight: .medium))
-            .foregroundStyle(.secondary)
-            .lineLimit(1)
-            .truncationMode(.tail)
-            .frame(maxWidth: 280)
+         Spacer(minLength: 6)
+         accountLimit(title: "5h", limit: snapshot?.session, accent: Assets.sessionAccent)
+         accountLimit(title: "7d", limit: snapshot?.weekly, accent: Assets.weeklyAccent)
       }
-      .menuStyle(.borderlessButton)
-      .fixedSize()
+      .padding(.horizontal, 11)
+      .padding(.vertical, 8)
+      .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.white.opacity(0.055)))
    }
 
-   private var sessionCard: some View {
-      NotchUsageCard(
-         title: "Session · 5h",
-         limit: model.activeSnapshot?.session,
-         accent: Assets.sessionAccent
-      )
-   }
-
-   private var weeklyCard: some View {
-      NotchUsageCard(
-         title: "Weekly · 7d",
-         limit: model.activeSnapshot?.weekly,
-         accent: Assets.weeklyAccent
-      )
-   }
-
-   private var historyChart: some View {
-      VStack(alignment: .leading, spacing: 4) {
-         Text("Trend")
-            .font(.system(size: 10, weight: .semibold))
-            .foregroundStyle(.secondary)
-         if model.activeHistory.isEmpty {
-            Text("No history yet — usage appears after a few refreshes.")
-               .font(.system(size: 10))
-               .foregroundStyle(.tertiary)
-               .frame(maxWidth: .infinity, alignment: .leading)
-               .padding(.vertical, 8)
-         } else {
-            UsageSparkline(samples: model.activeHistory)
-               .frame(height: 42)
+   private func accountLimit(title: String, limit: UsageLimit?, accent: Color) -> some View {
+      let color = limit?.statusLevel.color ?? accent
+      return VStack(spacing: 3) {
+         ZStack {
+            GaugeRing(progress: limit?.fraction ?? 0, color: color, lineWidth: 3)
+            Text(limit.map { "\(Int($0.utilization.rounded()))" } ?? "—")
+               .font(.system(size: 9, weight: .bold, design: .rounded))
+               .foregroundStyle(limit?.statusLevel.color ?? .secondary)
          }
+         .frame(width: 34, height: 34)
+         Text(title)
+            .font(.system(size: 8, weight: .semibold))
+            .foregroundStyle(.tertiary)
       }
+      .frame(width: 42)
    }
 
    private var footer: some View {
