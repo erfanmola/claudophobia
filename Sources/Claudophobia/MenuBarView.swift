@@ -11,22 +11,36 @@ struct MenuBarLabel: View {
          .help(helpText)
    }
 
-   private var snapshot: UsageSnapshot? { model.activeSnapshot }
+   private var snapshots: [UsageSnapshot] {
+      model.accounts.compactMap { model.snapshots[$0.id] }
+   }
 
    private var helpText: String {
-      guard let snap = snapshot else { return "Claudophobia — not signed in" }
-      return String(
-         format: "Claudophobia — session %d%% · weekly %d%%",
-         Int(snap.session.utilization.rounded()),
-         Int(snap.weekly.utilization.rounded())
-      )
+      guard !model.accounts.isEmpty else { return "Claudophobia — not signed in" }
+      let summaries = model.accounts.map { account -> String in
+         guard let snap = model.snapshots[account.id] else { return "\(account.name): loading" }
+         return String(format: "%@: session %d%% · weekly %d%%", account.name,
+                       Int(snap.session.utilization.rounded()),
+                       Int(snap.weekly.utilization.rounded()))
+      }
+      return "Claudophobia — " + summaries.joined(separator: " | ")
    }
 
    private var renderedImage: NSImage {
-      let level = snapshot?.session.statusLevel ?? .safe
-      let progress = snapshot?.session.fraction ?? 0
-      let content = MiniGauge(progress: progress, level: level, size: 17)
-         .frame(width: 18, height: 18)
+      let content = HStack(spacing: 2) {
+         if snapshots.isEmpty {
+            Image(systemName: "circle.grid.2x2.fill")
+               .font(.system(size: 15, weight: .medium))
+         } else {
+            ForEach(Array(snapshots.prefix(3).enumerated()), id: \.offset) { _, snap in
+               MiniGauge(progress: snap.session.fraction, level: snap.session.statusLevel, size: 11)
+            }
+            if snapshots.count > 3 {
+               Text("+\(snapshots.count - 3)").font(.system(size: 7, weight: .bold))
+            }
+         }
+      }
+      .frame(width: 22, height: 18)
       let renderer = ImageRenderer(content: content)
       renderer.scale = NSScreen.main?.backingScaleFactor ?? 2
       return renderer.nsImage ?? NSImage(size: .zero)
@@ -132,7 +146,14 @@ struct MenuBarView: View {
 
    private var usageContent: some View {
       VStack(alignment: .leading, spacing: 10) {
-         accountSelector
+         HStack {
+            Text("All accounts")
+               .font(.system(size: 14, weight: .bold))
+            Spacer()
+            Text("\(model.accounts.count)")
+               .font(.system(size: 10, weight: .semibold))
+               .foregroundStyle(.secondary)
+         }
 
          ForEach(model.accounts) { account in
             accountRow(account)
@@ -186,11 +207,6 @@ struct MenuBarView: View {
       HStack(spacing: 10) {
          VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 5) {
-               if model.activeAccount?.id == account.id {
-                  Image(systemName: "checkmark.circle.fill")
-                     .font(.system(size: 11))
-                     .foregroundStyle(Assets.accent)
-               }
                Text(account.name)
                   .font(.system(size: 12, weight: .semibold))
                   .lineLimit(1)
@@ -230,35 +246,6 @@ struct MenuBarView: View {
          RoundedRectangle(cornerRadius: 12, style: .continuous)
             .fill(Assets.cardFill)
       )
-      .contentShape(Rectangle())
-      .onTapGesture { model.setActive(id: account.id) }
-   }
-
-   private var accountSelector: some View {
-      HStack {
-         Text("Accounts")
-            .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(.secondary)
-         Spacer()
-         Menu {
-            ForEach(model.accounts) { account in
-               Button {
-                  model.setActive(id: account.id)
-               } label: {
-                  if model.activeAccount?.id == account.id {
-                     Label(account.name, systemImage: "checkmark")
-                  } else {
-                     Text(account.name)
-                  }
-               }
-            }
-         } label: {
-            Text(model.activeAccount?.name ?? "Select")
-               .font(.system(size: 11, weight: .medium))
-         }
-         .menuStyle(.borderlessButton)
-         .fixedSize()
-      }
    }
 
    private var footer: some View {
