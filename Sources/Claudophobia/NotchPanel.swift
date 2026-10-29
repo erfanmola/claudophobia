@@ -1,6 +1,21 @@
 import AppKit
 import SwiftUI
 
+private enum NotchLayout {
+   static let rowHeight: CGFloat = 90
+   static func topInset(for screen: NSScreen?) -> CGFloat {
+      max(screen?.safeAreaInsets.top ?? 0, 37) + 8
+   }
+   static func listHeight(accountCount: Int) -> CGFloat {
+      let count = min(accountCount, 2)
+      return CGFloat(count) * rowHeight + CGFloat(max(0, count - 1)) * 7
+   }
+   static func height(accountCount: Int, screen: NSScreen?) -> CGFloat {
+      guard accountCount > 0 else { return 260 }
+      return topInset(for: screen) + 18 + 18 + listHeight(accountCount: accountCount) + 16 + 36 + 16
+   }
+}
+
 // MARK: - Screen helpers
 
 extension NSScreen {
@@ -90,6 +105,7 @@ final class NotchController {
 
       let content = NotchContentView(model: AppModel.shared)
       hostingView = NSHostingView(rootView: content)
+      hostingView.sizingOptions = []
       hostingView.translatesAutoresizingMaskIntoConstraints = false
 
       effectView.addSubview(hostingView)
@@ -232,8 +248,7 @@ final class NotchController {
 
       // Landscape card: wide and short, like real notch widgets.
       let expandedWidth: CGFloat = 600
-      let visibleAccounts = min(AppModel.shared.accounts.count, 2)
-      let expandedHeight: CGFloat = max(190, 166 + CGFloat(visibleAccounts) * 90)
+      let expandedHeight = NotchLayout.height(accountCount: AppModel.shared.accounts.count, screen: screen)
       expandedFrame = NSRect(
          x: screen.frame.midX - expandedWidth / 2,
          y: top - expandedHeight,
@@ -390,7 +405,7 @@ struct NotchContentView: View {
          .padding(.horizontal, 18)
          .padding(.top, topInset)
          .padding(.bottom, 16)
-         .frame(maxWidth: .infinity, alignment: .top)
+         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
          .background(cardBackground)
          .shadow(color: .black.opacity(0.35), radius: 22, x: 0, y: 14)
          .contentShape(Rectangle())
@@ -398,7 +413,7 @@ struct NotchContentView: View {
 
    /// Height of the menu-bar / camera-housing strip the card must cover.
    private var topInset: CGFloat {
-      max(NSScreen.main?.safeAreaInsets.top ?? 0, 37) + 8
+      NotchLayout.topInset(for: NSScreen.main)
    }
 
    /// Solid black card with uniform rounded corners (like BoringNotch / the
@@ -415,7 +430,7 @@ struct NotchContentView: View {
 
    private var cardBody: some View {
       VStack(spacing: 12) {
-         header
+         header.frame(height: 18)
          if model.accounts.isEmpty {
             Spacer()
             VStack(spacing: 10) {
@@ -444,6 +459,7 @@ struct NotchContentView: View {
                   .font(.system(size: 10, weight: .semibold))
                   .foregroundStyle(.tertiary)
             }
+            .frame(height: 18)
             ScrollView {
                VStack(spacing: 7) {
                   ForEach(model.accounts) { account in
@@ -451,9 +467,9 @@ struct NotchContentView: View {
                   }
                }
             }
-            .frame(height: CGFloat(min(model.accounts.count, 2)) * 138 + 7)
+            .frame(height: NotchLayout.listHeight(accountCount: model.accounts.count))
             .scrollIndicators(.hidden)
-            footer
+            footer.frame(height: 16)
          }
       }
       .foregroundStyle(.primary)
@@ -490,6 +506,7 @@ struct NotchContentView: View {
       }
       .padding(.horizontal, 14)
       .padding(.vertical, 12)
+      .frame(height: NotchLayout.rowHeight)
       .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.white.opacity(0.055)))
    }
 
